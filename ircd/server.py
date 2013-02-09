@@ -418,10 +418,14 @@ class Server(dispatcher):
 
     def change_nick(self,user,newnick):
         self.dbg('server nick change %s -> %s' % (user.nick,newnick))
-        if user.nick in self.users:
-            self.users[user.nick].send_num(433, "%s :Nickname is already in use"%user.nick)
-            return
-        self.users[user.nick] = user
+        if len(newnick) > 30:
+            user.send_num(432, "%s :Erroneous nickname"%newnick)
+            newnick = user.do_nickname('')
+        elif newnick in self.users:
+            user.send_num(433, "%s :Nickname is already in use"%newnick)
+            if newnick == user.nick: return
+            newnick = user.do_nickname('')
+        self.users[user.nick] = user #FIXME: this isn't necessary...is it?
         self.users[newnick] = self.users.pop(user.nick)
         user.nick_change(user,newnick)
         for chan in user.chans:

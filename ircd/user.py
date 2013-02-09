@@ -101,16 +101,9 @@ class User:
     def send_num(self,num,data):
         self.send_raw(':%s %s %s %s'%(self.server.name,num,self.nick,data))
 
-    def valid_nick(self,nick):
-        return len(nick) <= 20 and len(nick) > 0
-
     def do_nickname(self,nick):
         nick = nick.strip()
-        if not self.valid_nick(nick.split('#')[0]):
-            # meh
-            return self.nick
-
-        if '#' in nick and nick[0] != '#':
+        if '#' in nick:
             i = nick.index('#')
             trip = util.tripcode(nick[:i],nick[i+1:])
             nick = nick[:i]
@@ -147,8 +140,6 @@ class User:
 
         if data.startswith('nick') and l > 1:
             self.dbg('got nick: %s'%p[1])
-            if p[1][0] == '#':
-                p[1] = 'skid' + p[1]
             nick = self.do_nickname(p[1])
             if not self.welcomed and len(self.nick) == 0:
                 self.nick = p[1]
@@ -204,11 +195,11 @@ class User:
             self.server.send_list(self)
 
     def nick_change(self,user,newnick):
-        data = ':%s!anon@%s NICK %s'%(user.nick,self.server.name,newnick)
         if user == self:
             data = ':%s NICK %s'%(user,newnick)
+        else:
+            data = ':%s!anon@%s NICK %s'%(user.nick,self.server.name,newnick)
         self.send_raw(data)
-
 
     def send_msg(self,data):
         pass
