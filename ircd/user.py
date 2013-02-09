@@ -1,3 +1,4 @@
+
 from time import time as now
 import util
 import base64, os
@@ -199,7 +200,7 @@ class User:
         if data.startswith('names'):
             for chan in p[1].split(','):
                 if chan in self.chans:
-                    self.server[chans].send_who(self)
+                    self.server[chan].send_who(self)
         if data.startswith('list'):
             self.server.send_list(self)
 
