@@ -1,0 +1,5 @@
+{
+    "tc_onion" : "smt4wjpa3r7tkczs",
+    "tc_db" : "peers.db",
+    "tc_reconnect" : 5
+}
