@@ -77,6 +77,7 @@ class Channel:
         if user not in self.users:
             return
         self.users.remove(user)
+        user.chans.remove(self.name)
         user.event(user,'part',self.name)
         for u in self.users:
             if not self.is_anon():
@@ -158,6 +159,19 @@ class Server(dispatcher):
         self.threads = []
         self.handlers = []
         self.on =True
+        
+        ###
+        #
+        # think of a better way than forking off functions
+        # this makes sigint not work
+        #
+        # lag_handler for each Server object could be done for
+        # managing pings and their timeouts
+        #
+        # admin_handler for each Server object could also
+        # be done such that this ugly crap isn't needed
+        #
+        ###
         for t in [self.pingloop,self.pongloop,self.adminloop]:
             t = self._fork(t)
             self.threads.append(t)
@@ -196,7 +210,7 @@ class Server(dispatcher):
         msg = msg[1:]
         onion = user.nick.endswith('.onion')
         self.dbg('privmsg %s -> %s -- %s'%(user.nick,dest,msg))
-        if (dest[0] in ['&','#'] and not self._has_channel(dest)) or (dest[0] not in ['&','#'] and not self.has_nick(str(user))):
+        if (dest[0] in ['&','#'] and not self._has_channel(dest)) or (dest[0] not in ['&','#'] and user.nick not in self.users):
             user.send_num(401,'%s :No such nick/channel'%dest)
             return
         if dest.endswith('serv'):
@@ -231,9 +245,9 @@ class Server(dispatcher):
     def has_service(self,serv):
         return serv.lower() in self.service.keys()
 
-
-    def has_nick(self,nick):
-        return nick.split('!')[0] in self.users.keys()
+    # we don't really need this right now
+    #def has_nick(self,nick):
+    #    return nick.split('!')[0] in self.users.keys()
     
 
     def _log(self,type,msg):

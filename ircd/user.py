@@ -134,8 +134,8 @@ class User:
             self.on_pong(p[1])
             return
         
-        if data.startswith('user') and l > 1:
-            self.usr = p[1]
+        #if data.startswith('user') and l > 1:
+        #    self.usr = p[1]
 
         if data.startswith('nick') and l > 1:
             self.dbg('got nick: %s'%p[1])
@@ -145,9 +145,7 @@ class User:
             if not self.welcomed and len(self.nick) == 0:
                 self.nick = p[1]
                 self.server.add_user(self)
-                self.server.change_nick(self,nick)
-            elif len(self.nick) > 0:
-                self.server.change_nick(self,nick)
+            self.server.change_nick(self,nick)
         if not self.welcomed:
             return
 
@@ -166,7 +164,8 @@ class User:
         if data.startswith('part'):
             chans = p[1].split(',')
             for chan in chans:
-                self.part_chan(chan)
+                if chan in self.chans:
+                    self.part_chan(chan)
         if data.startswith('privmsg'):
             c = inbuffer.split(':')
             msg = ''
