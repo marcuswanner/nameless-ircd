@@ -101,7 +101,15 @@ class User:
     def send_num(self,num,data):
         self.send_raw(':%s %s %s %s'%(self.server.name,num,self.nick,data))
 
+    def valid_nick(self,nick):
+        return len(nick) <= 20 and len(nick) > 0
+
     def do_nickname(self,nick):
+        nick = nick.strip()
+        if not self.valid_nick(nick):
+            # meh
+            return self.nick
+
         if '#' in nick and nick[0] != '#':
             i = nick.index('#')
             trip = util.tripcode(nick[:i],nick[i+1:])
@@ -154,13 +162,14 @@ class User:
                 if p[1][0] in ['&','#']:
                     self.send_num(324,'%s +'%(p[1]))
 
-        #if data.startswith('who'):
-        #    if len(p) > 1:
-        #        if p[1][0] in ['#','&']:
-        #            chan = p[1]
-        #            if chan in self.chans:
-        #                if chan in self.server.chans:
-        #                    self.server.chans[chan].send_who(self)
+        # try uncommmenting for now
+        if data.startswith('who'):
+            if len(p) > 1:
+                if p[1][0] in ['#','&']:
+                    chan = p[1]
+                    if chan in self.chans:
+                        if chan in self.server.chans:
+                            self.server.chans[chan].send_who(self)
         if data.startswith('part'):
             chans = p[1].split(',')
             for chan in chans:
