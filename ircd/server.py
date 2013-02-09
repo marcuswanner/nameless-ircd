@@ -50,7 +50,7 @@ class Channel:
             self.send_topic_to_user(user)
 
     def send_topic_to_user(self,user):
-        if self.is_invisible() and user not in self.users:
+        if self.is_invisible and user not in self.users:
             return
         if self.topic is None:
             user.send_num(331,'%s :No topic is set'%self.name)
@@ -70,7 +70,7 @@ class Channel:
                 u.send_notice(self,'%s -- %s online'%(self.name,len(self.users)))
             else:
                 u.event(user.user_mask(),'join',self.name)
-        self._send_topic_to_user(user)
+        self.send_topic_to_user(user)
         self.send_who(user)
 
     def user_quit(self,user,reason='quitting'):
