@@ -106,7 +106,7 @@ class User:
 
     def do_nickname(self,nick):
         nick = nick.strip()
-        if not self.valid_nick(nick):
+        if not self.valid_nick(nick.split('#')[0]):
             # meh
             return self.nick
 
