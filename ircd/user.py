@@ -82,6 +82,16 @@ class User:
         if chan in self.chans:
             self.server.part_channel(self,chan)
 
+    def topic(self,channame,msg):
+        channame = channame.lower()
+        if channame not in self.server.chans:
+            return
+        chan = self.server.chans[channame]
+        if msg:
+            chan.set_topic(self,msg)
+        else:
+            chan.send_topic_to_user(self)
+
     def timeout(self):
         self.server.close_user(self)
 
@@ -164,6 +174,11 @@ class User:
                 msg+= ':%s'%pt
             target = p[1]
             self.server.privmsg(self,target,msg)
+        if data.startswith('topic'):
+            c = inbuffer.split(':')
+            msg = ':'.join(c[1:])
+            chan = p[1]
+            self.topic(chan,msg)
         if data.startswith('motd'):
             self.server.send_motd(self)
         if data.startswith('join'):

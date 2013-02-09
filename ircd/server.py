@@ -20,12 +20,12 @@ class Channel:
         self.empty = lambda : len(self.users) == 0
         self.is_invisible = self.name[1] == '.'
         
-    def topic(self,user,topic):
+    def set_topic(self,user,topic):
         if user not in self.users:
+            user.send_num(442, "%s :You're not on that channel"%self.name)
             return
         self.topic = topic
         self.send_topic()
-
 
     def nick_change(self,user,newnick):
         if self.is_anon():
@@ -47,13 +47,15 @@ class Channel:
 
     def send_topic(self):
         for user in self.users:
-            self._send_topic_to_user(user)
+            self.send_topic_to_user(user)
 
-    def _send_topic_to_user(self,user):
-        if self.topic is None:
-            user.send_num(331,':No topic is set')
+    def send_topic_to_user(self,user):
+        if self.is_invisible() and user not in self.users:
             return
-        user.send_num(332 ,':%s'%self.topic)
+        if self.topic is None:
+            user.send_num(331,'%s :No topic is set'%self.name)
+            return
+        user.send_num(332 ,'%s :%s'%(self.name,self.topic))
 
     def joined(self,user):
         if user in self.users:

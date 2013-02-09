@@ -147,7 +147,7 @@ class link_send(link):
                             return
                         if chan['name'] not in self.server.chans:
                             self.server.chans[chan['name']] = Chan(chan['name'],self.server)
-                            self.server.chans[chan['name']].topic = chan['topic']
+                            self.server.chans[chan['name']].set_topic(chan['topic'])
                 if 'users' in data['sync']:
                     for user in data['sync']['users']:
                         for attr in ['nick','chans']:
