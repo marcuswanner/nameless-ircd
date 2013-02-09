@@ -101,7 +101,15 @@ class User:
     def send_num(self,num,data):
         self.send_raw(':%s %s %s %s'%(self.server.name,num,self.nick,data))
 
+    def valid_nick(self,nick):
+        return len(nick) <= 20 and len(nick) > 0
+
     def do_nickname(self,nick):
+        nick = nick.strip()
+        if not self.valid_nick(nick.split('#')[0]):
+            # meh
+            return self.nick
+
         if '#' in nick and nick[0] != '#':
             i = nick.index('#')
             trip = util.tripcode(nick[:i],nick[i+1:])
@@ -134,8 +142,8 @@ class User:
             self.on_pong(p[1])
             return
         
-        if data.startswith('user') and l > 1:
-            self.usr = p[1]
+        #if data.startswith('user') and l > 1:
+        #    self.usr = p[1]
 
         if data.startswith('nick') and l > 1:
             self.dbg('got nick: %s'%p[1])
@@ -145,9 +153,7 @@ class User:
             if not self.welcomed and len(self.nick) == 0:
                 self.nick = p[1]
                 self.server.add_user(self)
-                self.server.change_nick(self,nick)
-            elif len(self.nick) > 0:
-                self.server.change_nick(self,nick)
+            self.server.change_nick(self,nick)
         if not self.welcomed:
             return
 
@@ -156,17 +162,19 @@ class User:
                 if p[1][0] in ['&','#']:
                     self.send_num(324,'%s +'%(p[1]))
 
-        #if data.startswith('who'):
-        #    if len(p) > 1:
-        #        if p[1][0] in ['#','&']:
-        #            chan = p[1]
-        #            if chan in self.chans:
-        #                if chan in self.server.chans:
-        #                    self.server.chans[chan].send_who(self)
+        # try uncommmenting for now
+        if data.startswith('who'):
+            if len(p) > 1:
+                if p[1][0] in ['#','&']:
+                    chan = p[1]
+                    if chan in self.chans:
+                        if chan in self.server.chans:
+                            self.server.chans[chan].send_who(self)
         if data.startswith('part'):
             chans = p[1].split(',')
             for chan in chans:
-                self.part_chan(chan)
+                if chan in self.chans:
+                    self.part_chan(chan)
         if data.startswith('privmsg'):
             c = inbuffer.split(':')
             msg = ''
