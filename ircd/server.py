@@ -210,7 +210,7 @@ class Server(dispatcher):
         msg = msg[1:]
         onion = user.nick.endswith('.onion')
         self.dbg('privmsg %s -> %s -- %s'%(user.nick,dest,msg))
-        if (dest[0] in ['&','#'] and not self._has_channel(dest)) or (dest[0] not in ['&','#'] and user.nick not in self.users):
+        if (dest[0] in ['&','#'] and not self._has_channel(dest)) or (dest[0] not in ['&','#'] and dest not in self.users):
             user.send_num(401,'%s :No such nick/channel'%dest)
             return
         if dest.endswith('serv'):
