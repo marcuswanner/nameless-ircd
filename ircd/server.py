@@ -210,7 +210,7 @@ class Server(dispatcher):
         msg = msg[1:]
         onion = user.nick.endswith('.onion')
         self.dbg('privmsg %s -> %s -- %s'%(user.nick,dest,msg))
-        if (dest[0] in ['&','#'] and not self._has_channel(dest)) or (dest[0] not in ['&','#'] and user.nick not in self.users):
+        if (dest[0] in ['&','#'] and not self._has_channel(dest)) or (dest[0] not in ['&','#'] and dest not in self.users):
             user.send_num(401,'%s :No such nick/channel'%dest)
             return
         if dest.endswith('serv'):
@@ -418,8 +418,14 @@ class Server(dispatcher):
 
     def change_nick(self,user,newnick):
         self.dbg('server nick change %s -> %s' % (user.nick,newnick))
-        if user.nick not in self.users:
-            self.users[user.nick] = user
+        if len(newnick) > 30:
+            user.send_num(432, "%s :Erroneous nickname"%newnick)
+            newnick = user.do_nickname('')
+        elif newnick in self.users:
+            user.send_num(433, "%s :Nickname is already in use"%newnick)
+            if newnick == user.nick: return
+            newnick = user.do_nickname('')
+        self.users[user.nick] = user #FIXME: this isn't necessary...is it?
         self.users[newnick] = self.users.pop(user.nick)
         user.nick_change(user,newnick)
         for chan in user.chans:
