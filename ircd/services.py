@@ -50,6 +50,7 @@ class adminserv(Service):
             self.passwd = r.read().strip()
 
     def serve(self,server,user,msg):
+        msg = msg.strip()
         if msg.lower().startswith('auth'):
             if user.nick == self.passwd:
                 self.server.set_admin(user)
@@ -139,7 +140,7 @@ class tripserv(Service):
 # from tcserv import tcserv
 from linkserv import linkserv
 services = {
-    'trip':tripserv,
+    # 'trip':tripserv, # tripserv deprecated
     'admin':adminserv,
     'link':linkserv,
     #,'tc':tcserv
