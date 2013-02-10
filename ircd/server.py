@@ -82,7 +82,7 @@ class Channel:
         for u in self.users:
             if not self.is_anon():
                 u.event(user,'part',self.name)
-            else:
+            elif not self.is_invisible:
                 u.send_notice(self.name,'%s -- %s online'%(self.name,len(self.users)))  
         if self.empty():
             self.server.remove_channel(self.name)
