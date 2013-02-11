@@ -5,6 +5,7 @@ from time import sleep
 from random import randint as rand
 from threading import Thread
 import user
+User = user.User
 import socket,asyncore,base64,os,threading,traceback
 import services
 
@@ -26,14 +27,6 @@ class Channel:
             return
         self.topic = topic
         self.send_topic()
-
-    def nick_change(self,user,newnick):
-        if self.is_anon():
-            return
-        for u in self.users:
-            if u == user:
-                continue
-            u.nick_change(user,newnick)
 
     def send_raw(self,msg):
         for user in self.users:
@@ -426,11 +419,16 @@ class Server(dispatcher):
             newnick = user.do_nickname('')
         self.users[user.nick] = user #FIXME: this isn't necessary...is it?
         self.users[newnick] = self.users.pop(user.nick)
+        for u in self.users.values():
+            if not isinstance(u, User): continue
+            if u == user: continue
+            print u.nick, user.chans, u.chans
+            for chan in set(user.chans).intersection(u.chans):
+                print chan, self.chans[chan].is_anon()
+                if not self.chans[chan].is_anon():
+                    u.nick_change(user,newnick)
+                    break
         user.nick_change(user,newnick)
-        for chan in user.chans:
-            self.dbg('inform %s of nick change'%chan)
-            if chan in self.chans:
-                self.chans[chan].nick_change(user,newnick)
         user.nick = newnick
         user.usr = newnick
         self.dbg('user is now %s'%user)
