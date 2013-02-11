@@ -21,7 +21,7 @@ class User:
             "'",'~','.',',',':'
             ]
         self.__str__ = self.user_mask
-        self.dbg = lambda msg: server.dbg('%s : %s'%(self,msg))
+        self.dbg = lambda msg: server.dbg('%s : %s'%(self,unicode(msg)))
         self.handle_error = self.server.handle_error
 
 
@@ -97,25 +97,26 @@ class User:
         self.server.close_user(self)
 
     def _rand_nick(self,l):
-        return base64.b32encode(os.urandom(l)).replace('=','')
+        nick =  base64.b32encode(os.urandom(l)).replace('=','')
+        while nick in self.server.users:
+            nick = base64.b32encode(os.urandom(l)).replace('=','')
+        return nick
 
     def send_num(self,num,data):
         self.send_raw(':%s %s %s %s'%(self.server.name,num,self.nick,data))
 
     def do_nickname(self,nick):
-        nick = nick.strip()
         if '#' in nick:
+            nick = nick.strip()
             i = nick.index('#')
             trip = util.tripcode(nick[:i],nick[i+1:])
-            nick = nick[:i]
+            nick = util.filter_unicode(nick[:i])
+            for c in nick:
+                if c in self._bad_chars:
+                    return self._rand_nick(6)
             nick += '|' 
-            nick += trip[:len(trip)/2]        
-        else:
-            nick = self._rand_nick(6)
-            while self.server.has_user(nick):
-                nick = self._rand_nick(6)
-                
-        return nick
+            return nick + trip[:len(trip)/2]        
+        return self._rand_nick(6)
 
     def got_line(self,inbuffer):
         p = inbuffer.split(' ')
@@ -169,14 +170,13 @@ class User:
                     self.part_chan(chan)
         if data.startswith('privmsg'):
             c = inbuffer.split(':')
-            msg = ''
-            for pt in c[1:]:
-                msg+= ':%s'%pt
+            msg+= ':'.join(c[1:])
             target = p[1]
             self.server.privmsg(self,target,msg)
         if data.startswith('topic'):
             c = inbuffer.split(':')
             msg = ':'.join(c[1:])
+            msg = util.filter_unicode(msg)
             chan = p[1]
             self.topic(chan,msg)
         if data.startswith('motd'):
@@ -187,7 +187,8 @@ class User:
                 return
             chans = p[1].split(',')
             for chan in chans:
-                self.join_chan(chan.strip())
+                chan = util.filter_unicode(chan.strip())
+                self.join_chan(chan)
         if data.startswith('names'):
             for chan in p[1].split(','):
                 if chan in self.chans:

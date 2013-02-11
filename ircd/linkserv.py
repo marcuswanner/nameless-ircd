@@ -3,7 +3,8 @@ from user import User
 from util import socks_connect
 from asynchat import async_chat
 from asyncore import dispatcher
-import json,socket,os,base64,threading
+import json,socket,os,base64,threading,struct
+import link_protocol
 
 class listener(dispatcher):
     
@@ -24,7 +25,15 @@ class listener(dispatcher):
             link_recv(sock,self.parent)
 
 class link(async_chat):
-    
+    """
+    s2s TL;DR 
+
+    servers pass arround JSON Objects that are signed by their senders
+    server could possibly unpack messages and claim they are from them
+    by repacking the json object as their own.
+
+    Nothing much can stop that so nothing will be done about it.
+    """
 
     def __init__(self,sock,parent,name='?'):
         async_chat.__init__(self,sock)
@@ -38,8 +47,26 @@ class link(async_chat):
         self.handle_error = self.server.handle_error
         self.init()
 
+
+    def sign(self,data):
+        return link_protocol.sign(data)
+
+    def verify(self,data,sig):
+        try:
+            link_protocol.verify(data,sig)
+            return data
+        except:
+            self.server.handle_error() # report error
+            return None
+
+    def gen_id(self):
+        # probably won't be a problem for a while
+        return int(time.time())
+
     def send_msg(self,data):
-        self.push(json.dumps(data)+self.parent.delim)
+        data['id'] = self.gen_id()
+        data = json.dumps(data)
+        self.push(link_protocol.pack(data,self.sign(data)))
         
     def collect_incoming_data(self,data):
         self.ibuffer += data
@@ -47,6 +74,11 @@ class link(async_chat):
     def found_terminator(self):
         data = self.ibuffer
         self.ibuffer = ''
+        data, sig = link_protocol.unpack(data)
+        data = self.verify(data,sig)
+        if data is None:
+            # drop unverifiable messages
+            return 
         try:
             j = json.loads(data)
         except:
@@ -72,14 +104,22 @@ class link(async_chat):
     def init(self):
         pass
 
-    def parse_message(self,data):
-        for e in ['data','event','dst']:
+    def parse_message(self,data,raw):
+        # you can totally replay stuff by the way
+        for e in ['data','event','dst','id']:
             if e not in data:
                 self.bad_format()
                 return
         self.got_message(data['event'],data['data'],data['dst'])
-            
-    def got_message(self,event,data,dst):
+        expunge = False
+        if dst[0] not in ['#','&']:
+            if dst in self.servers.users:
+                if not self.servers.users[dst].is_remote:
+                    expunge = True
+        if not expunge:
+            self.parent.forward(raw)
+
+    def got_message(self,event,data,dst,raw):
         event = event.lower()
         if not hasattr(self,'_got_%s'%event):
             self.error('bad event')
@@ -110,6 +150,7 @@ class link_user(User):
         User.__init__(self,link.server)
         self.nick = nick
         self.usr = nick
+        self.is_remote = True
     
     def send_msg(self,msg):
         self.link.send_msg({'data':msg,'event':'raw','dst':str(self)})
@@ -196,7 +237,7 @@ class linkserv(Service):
     def __init__(self,server,cfg_fname='linkserv.json'):
         Service.__init__(self,server)
         self.nick = 'linkserv'
-        self.delim = '\r\n.\r\n'
+        self.delim = link_protocol.delim
         self.links = []
         self._cfg_fname = cfg_fname
         self._lock = threading.Lock()
@@ -205,6 +246,11 @@ class linkserv(Service):
         j = self.get_cfg()
         if 'autoconnect' in j and j['autoconnect'] in self._yes:
             self.connect_all()
+
+    def forward(self,data):
+        for link in self.links:
+            link.push(data)
+            link.push(link_protocol.delim)
         
     @admin
     def serve(self,server,user,msg):
