@@ -18,7 +18,7 @@ class User:
             '!','@','#','$','%',
             '^','&','*','(',')',
             '=','+','/','?','"',
-            "'",'~','.',',',
+            "'",'~','.',',',':'
             ]
         self.__str__ = self.user_mask
         self.dbg = lambda msg: server.dbg('%s : %s'%(self,msg))
@@ -155,13 +155,13 @@ class User:
                     self.send_num(324,'%s +'%(p[1]))
 
         # try uncommmenting for now
-        if data.startswith('who'):
-            if len(p) > 1:
-                if p[1][0] in ['#','&']:
-                    chan = p[1]
-                    if chan in self.chans:
-                        if chan in self.server.chans:
-                            self.server.chans[chan].send_who(self)
+        #if data.startswith('who'):
+        #    if len(p) > 1:
+        #        if p[1][0] in ['#','&']:
+        #            chan = p[1]
+        #            if chan in self.chans:
+        #                if chan in self.server.chans:
+        #                    self.server.chans[chan].send_who(self)
         if data.startswith('part'):
             chans = p[1].split(',')
             for chan in chans:
