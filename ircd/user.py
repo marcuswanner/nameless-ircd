@@ -13,6 +13,7 @@ class User:
         self.name = ''
         self.last_ping = 0
         self.chans = []
+        self.modes = []
         self.welcomed = False
         self._bad_chars = [
             '!','@','#','$','%',
@@ -93,6 +94,28 @@ class User:
         else:
             chan.send_topic_to_user(self)
 
+    def _set_single_mode(self,modechar,enabled):
+        if enabled:
+            if not modechar in self.modes:
+                self.modes.append(modechar)
+                self.send_raw(':%s MODE %s :+%s'%(self.nick,self.nick,modechar))
+        else:
+            if modechar in self.modes:
+                self.modes.remove(modechar)
+                self.send_raw(':%s MODE %s :-%s'%(self.nick,self.nick,modechar))
+    
+    def set_mode(self,modestring):
+        state = None #true for +, false for -
+        for c in modestring:
+            if c == '+':
+                state = True
+            elif c == '-':
+                state = False
+            elif c in ['u', 'e', 'P']:
+                self._set_single_mode(c,state)
+            else:
+                self.send_num(501, ':Unknown MODE flag')
+
     def timeout(self):
         self.server.close_user(self)
 
@@ -151,9 +174,18 @@ class User:
             return
 
         if data.startswith('mode'):
-            if len(p) > 1:
-                if p[1][0] in ['&','#']:
-                    self.send_num(324,'%s +'%(p[1]))
+            if len(p) > 1 and p[1][0] in ['&','#']: #channel mode
+                #the spec doesn't actually say when we're supposed to send this
+                #TODO: find out wtf to do in edge cases like 404, etc.
+                self.send_num(324,'%s +'%(p[1]))
+            elif len(p) == 3: #user mode
+                if p[1] == self.nick:
+                    self.set_mode(p[2])
+                else:
+                    self.send_num(502, ':Cannot change mode for other users')
+            elif len(p) == 2: #user get mode
+                if p[1] == self.nick:
+                    self.send_num(221, '+'+''.join(self.modes))
 
         # try uncommmenting for now
         #if data.startswith('who'):
