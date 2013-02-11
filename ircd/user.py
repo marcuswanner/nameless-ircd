@@ -188,11 +188,12 @@ class User:
             chans = p[1].split(',')
             for chan in chans:
                 chan = util.filter_unicode(chan.strip())
-                self.join_chan(chan)
+                if len(chan) > 1:
+                    self.join_chan(chan)
         if data.startswith('names'):
             for chan in p[1].split(','):
                 if chan in self.chans:
-                    self.server[chan].send_who(self)
+                    self.server.chans[chan].send_who(self)
         if data.startswith('list'):
             self.server.send_list(self)
 
