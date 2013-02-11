@@ -65,9 +65,8 @@ class Channel:
             if self.is_anon():
                 if u == user:
                     u.event(user.user_mask(),'join',self.name)
-                if self.is_invisible:
-                    continue
-                u.send_notice(self,'%s -- %s online'%(self.name,len(self.users)))
+                elif not self.is_invisible:
+                    u.send_notice(self,'%s -- %s online'%(self.name,len(self.users)))
             else:
                 u.event(user.user_mask(),'join',self.name)
         self.send_topic_to_user(user)
