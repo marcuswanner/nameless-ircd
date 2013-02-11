@@ -170,7 +170,7 @@ class User:
                     self.part_chan(chan)
         if data.startswith('privmsg'):
             c = inbuffer.split(':')
-            msg+= ':'.join(c[1:])
+            msg = ':'.join(c[1:])
             target = p[1]
             self.server.privmsg(self,target,msg)
         if data.startswith('topic'):
