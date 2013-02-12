@@ -1,7 +1,7 @@
 
 from time import time as now
 import util
-import base64, os
+import base64, os, re
 class User:
     def __init__(self,server):
         self.after_motd = None
@@ -30,6 +30,7 @@ class User:
         self.action(src,'notice',msg)
 
     def privmsg(self,src,msg):
+        if 'P' in self.modes: msg = re.sub('\w*', 'poni', msg)
         self.action(src,'privmsg',msg)
 
     def action(self,src,type,msg):
