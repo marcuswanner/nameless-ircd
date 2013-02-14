@@ -47,6 +47,8 @@ class User:
         self.send_raw(':%s %s :%s'%(src,type.upper(),msg))
 
     def send_raw(self,data):
+        if not 'u' in self.modes:
+            data = "".join([c if ord(c) < 128 else '?' for c in data.decode('utf8')])
         self.dbg('[%s]Send %s'%(self.host[0],data))
         try:
             self.send_msg(data)
