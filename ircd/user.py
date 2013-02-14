@@ -1,7 +1,7 @@
 
 from time import time as now
 import util
-import base64, os
+import base64, os, re
 class User:
     def __init__(self,server):
         self.after_motd = None
@@ -13,6 +13,7 @@ class User:
         self.name = ''
         self.last_ping = 0
         self.chans = []
+        self.modes = []
         self.welcomed = False
         self._bad_chars = [
             '!','@','#','$','%',
@@ -29,6 +30,7 @@ class User:
         self.action(src,'notice',msg)
 
     def privmsg(self,src,msg):
+        if 'P' in self.modes: msg = re.sub('\w*', 'poni', msg)
         self.action(src,'privmsg',msg)
 
     def action(self,src,type,msg):
@@ -45,6 +47,8 @@ class User:
         self.send_raw(':%s %s :%s'%(src,type.upper(),msg))
 
     def send_raw(self,data):
+        if not 'u' in self.modes:
+            data = "".join([c if ord(c) < 128 else '?' for c in data.decode('utf8')])
         self.dbg('[%s]Send %s'%(self.host[0],data))
         try:
             self.send_msg(data)
@@ -92,6 +96,28 @@ class User:
             chan.set_topic(self,msg)
         else:
             chan.send_topic_to_user(self)
+
+    def _set_single_mode(self,modechar,enabled):
+        if enabled:
+            if not modechar in self.modes:
+                self.modes.append(modechar)
+                self.send_raw(':%s MODE %s :+%s'%(self.nick,self.nick,modechar))
+        else:
+            if modechar in self.modes:
+                self.modes.remove(modechar)
+                self.send_raw(':%s MODE %s :-%s'%(self.nick,self.nick,modechar))
+    
+    def set_mode(self,modestring):
+        state = None #true for +, false for -
+        for c in modestring:
+            if c == '+':
+                state = True
+            elif c == '-':
+                state = False
+            elif c in ['u', 'e', 'P']:
+                self._set_single_mode(c,state)
+            else:
+                self.send_num(501, ':Unknown MODE flag')
 
     def timeout(self):
         self.server.close_user(self)
@@ -151,9 +177,18 @@ class User:
             return
 
         if data.startswith('mode'):
-            if len(p) > 1:
-                if p[1][0] in ['&','#']:
-                    self.send_num(324,'%s +'%(p[1]))
+            if len(p) > 1 and p[1][0] in ['&','#']: #channel mode
+                #the spec doesn't actually say when we're supposed to send this
+                #TODO: find out wtf to do in edge cases like 404, etc.
+                self.send_num(324,'%s +'%(p[1]))
+            elif len(p) == 3: #user mode
+                if p[1] == self.nick:
+                    self.set_mode(p[2])
+                else:
+                    self.send_num(502, ':Cannot change mode for other users')
+            elif len(p) == 2: #user get mode
+                if p[1] == self.nick:
+                    self.send_num(221, '+'+''.join(self.modes))
 
         # try uncommmenting for now
         #if data.startswith('who'):
